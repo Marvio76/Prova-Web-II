@@ -1,0 +1,45 @@
+body {
+    font-family: Arial;
+    padding: 20px;
+    background-color: #f2f2f2;
+    background-image: url(votre-brasserie.webp);
+}
+
+h2 {
+    color: #333;
+    background-color: aqua;
+}
+
+form {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+input,
+select,
+button {
+    margin: 8px 0;
+    padding: 8px;
+    width: 100%;
+}
+
+.valid {
+    border: 2px solid green;
+}
+
+.invalid {
+    border: 2px solid red;
+}
+
+.item {
+    background: #fff;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 6px;
+}
+
+.item button {
+    margin-left: 10px;
+}
