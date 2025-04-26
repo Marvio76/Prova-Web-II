@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo Digital</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <h2>Adicionar/Editar Item</h2>
+    <form id="itemForm">
+        <input type="text" id="nome" placeholder="Nome do prato" required>
+        <textarea id="descricao" placeholder="Descrição"></textarea>
+        <input type="number" id="preco" placeholder="Preço" required>
+        <select id="categoria">
+            <option value="">Selecione a categoria</option>
+            <option value="Entrada">Entrada</option>
+            <option value="Prato Principal">Prato Principal</option>
+            <option value="Sobremesa">Sobremesa</option>
+        </select>
+        <input type="text" id="cep" placeholder="CEP (para busca ViaCEP ex: 01001000). Nem todo CEP será encontrado." maxlength="8">
+        <button type="submit">Salvar</button>
+    </form>
+
+    <h2>Catálogo</h2>
+    <div id="catalogo"></div>
+
+    <script>
+        const form = document.getElementById('itemForm');
+        const catalogo = document.getElementById('catalogo');
+
+        let itens = JSON.parse(localStorage.getItem('catalogo')) || [];
+        let editIndex = null;
+
+        function salvarLocal() {
+            localStorage.setItem('catalogo', JSON.stringify(itens));
+        }
+
+        function renderizarCatalogo() {
+            catalogo.innerHTML = '';
+            itens.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `
+          <strong>${item.nome}</strong> - R$ ${item.preco} <br>
+          ${item.descricao}<br>
+          <em>${item.categoria}</em> <br>
+          CEP: ${item.cep || 'N/A'} - ${item.rua || 'Rua não encontrada'}<br>
+          <button onclick="editarItem(${index})">Editar</button>
+          <button onclick="removerItem(${index})">Remover</button>
+        `;
+                catalogo.appendChild(div);
+            });
+        }
+
+        function validarInput(input, condicao) {
+            if (condicao) {
+                input.classList.add('valid');
+                input.classList.remove('invalid');
+                return true;
+            } else {
+                input.classList.add('invalid');
+                input.classList.remove('valid');
+                return false;
+            }
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const nome = document.getElementById('nome');
+            const descricao = document.getElementById('descricao');
+            const preco = document.getElementById('preco');
+            const categoria = document.getElementById('categoria');
+            const cep = document.getElementById('cep');
+
+            let valido = true;
+
+            valido &= validarInput(nome, nome.value.trim().length > 2);
+            valido &= validarInput(preco, preco.value > 0);
+            valido &= validarInput(categoria, categoria.value !== '');
+            valido &= validarInput(cep, cep.value.trim().length === 8 || cep.value.trim() === '');
+
+            if (!valido) return;
+
+            if (cep.value.trim().length === 8) {
+               
+                buscarViaCEP(cep.value.trim())
+                    .then(dados => {
+                        const novoItem = {
+                            nome: nome.value,
+                            descricao: descricao.value,
+                            preco: parseFloat(preco.value).toFixed(2),
+                            categoria: categoria.value,
+                            cep: cep.value,
+                            rua: dados.logradouro || 'Rua não encontrada'
+                        };
+
+                        if (editIndex !== null) {
+                            itens[editIndex] = novoItem;
+                            editIndex = null;
+                        } else {
+                            itens.push(novoItem);
+                        }
+
+                        salvarLocal();
+                        renderizarCatalogo();
+                        form.reset();
+                        limparValidacoes();
+                    })
+                    .catch(() => alert('CEP inválido ou não encontrado. Tente outro.'));
+            } else {
+                alert('CEP deve ter exatamente 8 dígitos.');
+            }
+        });
+
+        function buscarViaCEP(cep) {
+            if (!cep) return Promise.resolve({});
+            return fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.erro) throw new Error('CEP inválido');
+                    return data;
+                });
+        }
+
+        function editarItem(index) {
+            const item = itens[index];
+            document.getElementById('nome').value = item.nome;
+            document.getElementById('descricao').value = item.descricao;
+            document.getElementById('preco').value = item.preco;
+            document.getElementById('categoria').value = item.categoria;
+            document.getElementById('cep').value = item.cep;
+            editIndex = index;
+        }
+
+        function removerItem(index) {
+            if (confirm('Tem certeza que deseja remover este item?')) {
+                itens.splice(index, 1);
+                salvarLocal();
+                renderizarCatalogo();
+            }
+        }
+
+        function limparValidacoes() {
+            document.querySelectorAll('input, select, textarea').forEach(el => {
+                el.classList.remove('valid', 'invalid');
+            });
+        }
+
+        renderizarCatalogo();
+    </script>
+
+</body>
+
+</html>
